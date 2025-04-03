@@ -47,6 +47,8 @@ class YomiageCog(commands.Cog):
             else:
                 break
             await asyncio.sleep(0)
+        mp3StreamingUrl = jsonData["mp3StreamingUrl"]
+        """
         statusUrl = jsonData["audioStatusUrl"]
         mp3Url = jsonData["mp3DownloadUrl"]
         while True:
@@ -61,13 +63,14 @@ class YomiageCog(commands.Cog):
             if jsonData.get("retryAfter") is not None:
                 await asyncio.sleep(jsonData.get("retryAfter"))
             await asyncio.sleep(1)
+        """
 
         options = {
             "before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5",
             "options": "-vn -bufsize 64k -analyzeduration 2147483647 -probesize 2147483647",
         }
         source = discord.PCMVolumeTransformer(
-            discord.FFmpegPCMAudio(mp3Url, **options), 2.0
+            discord.FFmpegPCMAudio(mp3StreamingUrl, **options), 2.0
         )
 
         voiceClient: discord.VoiceClient = guild.voice_client
