@@ -85,6 +85,7 @@ class YomiageCog(commands.Cog):
             if voiceClient.is_connected():
                 asyncio.run_coroutine_threadsafe(self.yomiage(guild), loop=loop)
 
+        source.read()
         await asyncio.sleep(2)
         voiceClient.play(source, after=after)
 
