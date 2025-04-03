@@ -16,7 +16,7 @@ class YomiageCog(commands.Cog):
         self.http: httpx.AsyncClient = httpx.AsyncClient()
 
     async def cog_load(self):
-        with open("./speakers.json", "w+") as f:
+        with open("./speakers.json") as f:
             self.speaker = json.load(f)
         if not isinstance(self.speaker, dict):
             self.speaker = {}
