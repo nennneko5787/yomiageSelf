@@ -16,13 +16,13 @@ class YomiageCog(commands.Cog):
         self.http: httpx.AsyncClient = httpx.AsyncClient()
 
     async def cog_load(self):
-        with open("speakers.json", "w+") as f:
+        with open("./speakers.json", "w+") as f:
             self.speaker = json.load(f)
         if not isinstance(self.speaker, dict):
             self.speaker = {}
 
     async def cog_unload(self):
-        with open("speakers.json", "w+") as f:
+        with open("./speakers.json", "w+") as f:
             json.dump(self.speaker, f)
 
     async def yomiage(self, guild: discord.Guild):
