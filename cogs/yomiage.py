@@ -99,10 +99,10 @@ class YomiageCog(commands.Cog):
         if channel and channel.id == message.channel.id:
             content = message.clean_content
             content = re.sub(r"https?://\S+", "、リンク省略、", content)
-            content = re.sub(r"<#.*?>", "、チャンネル、", content)
-            content = re.sub(r"<@.*?>", "、メンション、", content)
-            content = re.sub(r"<@&.*?>", "、ロールメンション、", content)
-            content = re.sub(r"<.*?:.*?>", "、絵文字、", content)
+            content = re.sub(r"<#.*?>", "、チャンネル省略、", content)
+            content = re.sub(r"<@.*?>", "、メンション省略、", content)
+            content = re.sub(r"<@&.*?>", "、ロールメンション省略、", content)
+            content = re.sub(r"<.*?:.*?>", "、絵文字省略、", content)
             await self.queue[message.guild.id].put(
                 f"{message.author.display_name}さん、{content}{'、添付ファイル' if len(message.attachments) > 0 or len(message.stickers) > 0 else ''}"
             )
@@ -120,26 +120,27 @@ class YomiageCog(commands.Cog):
         channel = self.yomiChannel.get(guild.id)
         if not channel:
             return
-
-        if before.channel:
-            if before.channel.id != channel.id:
-                return
-            if after.channel is None:
+    
+        # どちらのチャンネルにもいない（何も変化していない）場合は無視
+        if before.channel is None and after.channel is None:
+            return
+    
+        # 読み上げ対象のチャンネルからの退出処理
+        if before.channel and before.channel.id == channel.id:
+            if after.channel is None or after.channel.id != channel.id:
                 await self.queue[guild.id].put(
                     f"{member.display_name}さんが退出しました。"
                 )
                 await self.yomiage(guild)
-            elif after.channel.id == channel.id:
-                await self.queue[guild.id].put(
-                    f"{member.display_name}さんが入室しました。"
-                )
-                await self.yomiage(guild)
-        else:
-            if after.channel.id == channel.id:
-                await self.queue[guild.id].put(
-                    f"{member.display_name}さんが入室しました。"
-                )
-                await self.yomiage(guild)
+    
+        # 読み上げ対象のチャンネルへの入室処理
+        if after.channel and after.channel.id == channel.id and (
+            before.channel is None or before.channel.id != channel.id
+        ):
+            await self.queue[guild.id].put(
+                f"{member.display_name}さんが入室しました。"
+            )
+            await self.yomiage(guild)
 
     @commands.command()
     async def join(self, ctx: commands.Context):
@@ -167,7 +168,6 @@ class YomiageCog(commands.Cog):
         del self.yomiChannel[ctx.guild.id]
         del self.queue[ctx.guild.id]
         del self.playing[ctx.guild.id]
-        del self.speaker[ctx.guild.id]
         await ctx.voice_client.disconnect()
 
     @commands.command(name="speaker")
