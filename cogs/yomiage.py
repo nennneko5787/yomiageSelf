@@ -36,6 +36,7 @@ class YomiageCog(commands.Cog):
                 self.playing[guild.id] = False
             return
         content = await self.queue[guild.id].get()
+        self.playing[guild.id] = True
 
         while True:
             response = await self.http.get(
@@ -85,7 +86,6 @@ class YomiageCog(commands.Cog):
                 asyncio.run_coroutine_threadsafe(self.yomiage(guild), loop=loop)
 
         voiceClient.play(source, after=after)
-        self.playing[guild.id] = True
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
