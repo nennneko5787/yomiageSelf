@@ -1,6 +1,7 @@
 import asyncio
 import json
 import re
+import time
 
 import discord
 import httpx
@@ -76,6 +77,7 @@ class YomiageCog(commands.Cog):
             if voiceClient.is_playing():
                 voiceClient.stop()
             if voiceClient.is_connected():
+                time.sleep(2)
                 asyncio.run_coroutine_threadsafe(self.yomiage(guild), loop=loop)
 
         voiceClient.play(source, after=after)
