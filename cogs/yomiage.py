@@ -19,26 +19,7 @@ class YomiageCog(commands.Cog):
             if guild.voice_client is not None:
                 self.playing[guild.id] = False
             return
-        content = await self.queue[guild.id].get()
-
-        response = await self.http.get(
-            f"https://api.tts.quest/v3/voicevox/synthesis?text={content}&speaker={self.speaker[guild.id]}"
-        )
-        jsonData = response.json()
-        statusUrl = jsonData["audioStatusUrl"]
-        mp3Url = jsonData["mp3DownloadUrl"]
-        while True:
-            response = await self.http.get(statusUrl)
-            jsonData = response.json()
-            if jsonData["isAudioReady"]:
-                break
-            if jsonData["isAudioError"]:
-                break
-            if not jsonData["success"]:
-                break
-            if jsonData.get("retryAfter") is not None:
-                await asyncio.sleep(jsonData.get("retryAfter"))
-            await asyncio.sleep(1)
+        mp3Url = await self.queue[guild.id].get()
 
         options = {
             "before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5",
@@ -61,6 +42,27 @@ class YomiageCog(commands.Cog):
         voiceClient.play(source, after=after)
         self.playing[guild.id] = True
 
+    async def generateTalk(self, guild: discord.Guild, text: str):
+        response = await self.http.get(
+            f"https://api.tts.quest/v3/voicevox/synthesis?text={text}&speaker={self.speaker[guild.id]}"
+        )
+        jsonData = response.json()
+        statusUrl = jsonData["audioStatusUrl"]
+        mp3Url = jsonData["mp3DownloadUrl"]
+        while True:
+            response = await self.http.get(statusUrl)
+            jsonData = response.json()
+            if jsonData["isAudioReady"]:
+                break
+            if jsonData["isAudioError"]:
+                break
+            if not jsonData["success"]:
+                break
+            if jsonData.get("retryAfter") is not None:
+                await asyncio.sleep(jsonData.get("retryAfter"))
+            await asyncio.sleep(1)
+        await self.queue[guild.id].put(mp3Url)
+
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         if message.content.startswith(self.bot.command_prefix):
@@ -69,8 +71,9 @@ class YomiageCog(commands.Cog):
             return
         channel = self.yomiChannel.get(message.guild.id)
         if channel and channel.id == message.channel.id:
-            await self.queue[message.guild.id].put(
-                f"{message.author.display_name}、さん、{message.clean_content}"
+            await self.generateTalk(
+                message.guild,
+                f"{message.author.display_name}、さん、{message.clean_content}",
             )
             if not self.playing[message.guild.id]:
                 await self.yomiage(message.guild)
@@ -87,14 +90,31 @@ class YomiageCog(commands.Cog):
         if not channel:
             return
 
-        if before.channel.id != channel.id:
-            return
-        if after.channel is None:
-            await self.queue[guild.id].put(f"{member.display_name}さんが退出しました。")
-            await self.yomiage(guild)
-        elif after.channel.id == channel.id:
-            await self.queue[guild.id].put(f"{member.display_name}さんが入室しました。")
-            await self.yomiage(guild)
+        if before.channel:
+            if before.channel.id != channel.id:
+                return
+            if after.channel is None:
+                await self.generateTalk(
+                    guild,
+                    f"{member.display_name}、さんが退出しました。",
+                )
+                if not self.playing[guild.id]:
+                    await self.yomiage(guild)
+            elif after.channel.id == channel.id:
+                await self.generateTalk(
+                    guild,
+                    f"{member.display_name}、さんが入室しました。",
+                )
+                if not self.playing[guild.id]:
+                    await self.yomiage(guild)
+        else:
+            if after.channel.id == channel.id:
+                await self.generateTalk(
+                    guild,
+                    f"{member.display_name}、さんが入室しました。",
+                )
+                if not self.playing[guild.id]:
+                    await self.yomiage(guild)
 
     @commands.command()
     async def join(self, ctx: commands.Context):
@@ -110,7 +130,10 @@ class YomiageCog(commands.Cog):
         self.speaker[ctx.guild.id] = 1
         await ctx.author.voice.channel.connect()
 
-        await self.queue[ctx.guild.id].put("接続しました。")
+        await self.generateTalk(
+            ctx.guild,
+            f"接続しました。",
+        )
         await self.yomiage(ctx.guild)
 
     @commands.command()
