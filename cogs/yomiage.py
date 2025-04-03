@@ -1,4 +1,5 @@
 import asyncio
+import json
 
 import discord
 import httpx
@@ -13,6 +14,16 @@ class YomiageCog(commands.Cog):
         self.playing: dict[int, bool] = {}
         self.speaker: dict[int, int] = {}
         self.http: httpx.AsyncClient = httpx.AsyncClient()
+
+    async def cog_load(self):
+        with open("speakers.json", "w+") as f:
+            self.speaker = json.load(f)
+        if not isinstance(self.speaker, dict):
+            self.speaker = {}
+
+    async def cog_unload(self):
+        with open("speakers.json", "w+") as f:
+            json.dump(self.speaker, f)
 
     async def yomiage(self, guild: discord.Guild):
         if self.queue[guild.id].qsize() <= 0:
@@ -80,7 +91,7 @@ class YomiageCog(commands.Cog):
         if channel and channel.id == message.channel.id:
             await self.generateTalk(
                 message.guild,
-                f"{message.author.display_name}、さん、{message.clean_content}",
+                f"{message.author.display_name}さん、{message.content}{'、添付ファイル「」' if len(message.attachments) > 0 else ''}",
             )
             if not self.playing[message.guild.id]:
                 await self.yomiage(message.guild)
@@ -103,14 +114,14 @@ class YomiageCog(commands.Cog):
             if after.channel is None:
                 await self.generateTalk(
                     guild,
-                    f"{member.display_name}、さんが退出しました。",
+                    f"{member.display_name}さんが退出しました。",
                 )
                 if not self.playing[guild.id]:
                     await self.yomiage(guild)
             elif after.channel.id == channel.id:
                 await self.generateTalk(
                     guild,
-                    f"{member.display_name}、さんが入室しました。",
+                    f"{member.display_name}さんが入室しました。",
                 )
                 if not self.playing[guild.id]:
                     await self.yomiage(guild)
@@ -118,7 +129,7 @@ class YomiageCog(commands.Cog):
             if after.channel.id == channel.id:
                 await self.generateTalk(
                     guild,
-                    f"{member.display_name}、さんが入室しました。",
+                    f"{member.display_name}さんが入室しました。",
                 )
                 if not self.playing[guild.id]:
                     await self.yomiage(guild)
@@ -134,7 +145,8 @@ class YomiageCog(commands.Cog):
         self.yomiChannel[ctx.guild.id] = ctx.channel
         self.queue[ctx.guild.id] = asyncio.Queue()
         self.playing[ctx.guild.id] = False
-        self.speaker[ctx.guild.id] = 1
+        if not self.speaker.get(ctx.guild.id):
+            self.speaker[ctx.guild.id] = 1
         await ctx.author.voice.channel.connect()
 
         await self.generateTalk(
