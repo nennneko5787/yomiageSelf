@@ -91,7 +91,7 @@ class YomiageCog(commands.Cog):
         if channel and channel.id == message.channel.id:
             await self.generateTalk(
                 message.guild,
-                f"{message.author.display_name}さん、{message.content}{'、添付ファイル「」' if len(message.attachments) > 0 else ''}",
+                f"{message.author.display_name}さん、{message.clean_content}{'、添付ファイル「」' if len(message.attachments) > 0 else ''}",
             )
             if not self.playing[message.guild.id]:
                 await self.yomiage(message.guild)
