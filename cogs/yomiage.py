@@ -2,6 +2,7 @@ import asyncio
 import json
 import re
 import time
+import urllib.parse
 
 import discord
 import httpx
@@ -38,7 +39,7 @@ class YomiageCog(commands.Cog):
 
         while True:
             response = await self.http.get(
-                f"https://api.tts.quest/v3/voicevox/synthesis?text={content}&speaker={self.speaker[guild.id]}"
+                f"https://api.tts.quest/v3/voicevox/synthesis?text={urllib.parse.quote(content)}&speaker={self.speaker[guild.id]}"
             )
             jsonData = response.json()
             if jsonData.get("retryAfter") is not None:
@@ -93,6 +94,9 @@ class YomiageCog(commands.Cog):
         if channel and channel.id == message.channel.id:
             content = message.clean_content
             content = re.sub(r"https?://\S+", "、リンク省略、", content)
+            content = re.sub(r"<#.*?>", "、チャンネル、", content)
+            content = re.sub(r"<@.*?>", "、メンション、", content)
+            content = re.sub(r"<@&.*?>", "、ロールメンション、", content)
             content = re.sub(r"<.*?:.*?>", "、絵文字、", content)
             await self.queue[message.guild.id].put(
                 f"{message.author.display_name}さん、{content}{'、添付ファイル' if len(message.attachments) > 0 or len(message.stickers) > 0 else ''}"
