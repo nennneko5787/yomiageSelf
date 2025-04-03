@@ -37,16 +37,23 @@ class YomiageCog(commands.Cog):
             if voiceClient.is_playing():
                 voiceClient.stop()
             if voiceClient.is_connected():
+                asyncio.run_coroutine_threadsafe(asyncio.sleep(2), loop=loop)
                 asyncio.run_coroutine_threadsafe(self.yomiage(guild), loop=loop)
 
         voiceClient.play(source, after=after)
         self.playing[guild.id] = True
 
     async def generateTalk(self, guild: discord.Guild, text: str):
-        response = await self.http.get(
-            f"https://api.tts.quest/v3/voicevox/synthesis?text={text}&speaker={self.speaker[guild.id]}"
-        )
-        jsonData = response.json()
+        while True:
+            response = await self.http.get(
+                f"https://api.tts.quest/v3/voicevox/synthesis?text={text}&speaker={self.speaker[guild.id]}"
+            )
+            jsonData = response.json()
+            if jsonData.get("retryAfter") is not None:
+                await asyncio.sleep(jsonData.get("retryAfter"))
+            else:
+                break
+            await asyncio.sleep(0)
         statusUrl = jsonData["audioStatusUrl"]
         mp3Url = jsonData["mp3DownloadUrl"]
         while True:
