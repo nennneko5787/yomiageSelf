@@ -93,6 +93,7 @@ class YomiageCog(commands.Cog):
         if channel and channel.id == message.channel.id:
             content = message.clean_content
             content = re.sub(r"https?://\S+", "、リンク省略、", content)
+            content = re.sub(r"<.*?:.*?>", "、絵文字、", content)
             await self.queue[message.guild.id].put(
                 f"{message.author.display_name}さん、{content}{'、添付ファイル' if len(message.attachments) > 0 or len(message.stickers) > 0 else ''}"
             )
