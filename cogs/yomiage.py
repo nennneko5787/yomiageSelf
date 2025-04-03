@@ -11,13 +11,12 @@ class YomiageCog(commands.Cog):
         self.yomiChannel: dict[int, discord.abc.Messageable] = {}
         self.queue: dict[int, asyncio.Queue] = {}
         self.playing: dict[int, bool] = {}
-        self.speaker: dict[int, int]
+        self.speaker: dict[int, int] = {}
         self.http: httpx.AsyncClient = httpx.AsyncClient()
 
     async def yomiage(self, guild: discord.Guild):
         if self.queue[guild.id].qsize() <= 0:
             if guild.voice_client is not None:
-                await guild.voice_client.disconnect()
                 self.playing[guild.id] = False
             return
         content = await self.queue[guild.id].get()
@@ -76,6 +75,27 @@ class YomiageCog(commands.Cog):
             if not self.playing[message.guild.id]:
                 await self.yomiage(message.guild)
 
+    @commands.Cog.listener()
+    async def on_voice_state_update(
+        self,
+        member: discord.Member,
+        before: discord.VoiceState,
+        after: discord.VoiceState,
+    ):
+        guild = member.guild
+        channel = self.yomiChannel.get(guild.id)
+        if not channel:
+            return
+
+        if before.channel.id != channel.id:
+            return
+        if after.channel is None:
+            await self.queue[guild.id].put(f"{member.display_name}さんが退出しました。")
+            await self.yomiage(guild)
+        elif after.channel.id == channel.id:
+            await self.queue[guild.id].put(f"{member.display_name}さんが入室しました。")
+            await self.yomiage(guild)
+
     @commands.command()
     async def join(self, ctx: commands.Context):
         if not ctx.author.voice.channel:
@@ -90,6 +110,9 @@ class YomiageCog(commands.Cog):
         self.speaker[ctx.guild.id] = 1
         await ctx.author.voice.channel.connect()
 
+        await self.queue[ctx.guild.id].put("接続しました。")
+        await self.yomiage(ctx.guild)
+
     @commands.command()
     async def leave(self, ctx: commands.Context):
         if not ctx.voice_client:
@@ -101,8 +124,8 @@ class YomiageCog(commands.Cog):
         del self.speaker[ctx.guild.id]
         await ctx.voice_client.disconnect()
 
-    @commands.command()
-    async def speaker(self, ctx: commands.Context, speaker: int):
+    @commands.command(name="speaker")
+    async def speakerCommand(self, ctx: commands.Context, speaker: int = 1):
         if not ctx.voice_client:
             await ctx.message.add_reaction("❌")
             return
