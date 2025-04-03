@@ -40,7 +40,8 @@ class YomiageCog(commands.Cog):
 
         while True:
             response = await self.http.get(
-                f"https://api.tts.quest/v3/voicevox/synthesis?text={urllib.parse.quote(content)}&speaker={self.speaker[guild.id]}"
+                f"https://api.tts.quest/v3/voicevox/synthesis?text={urllib.parse.quote(content)}&speaker={self.speaker[guild.id]}",
+                timeout=60,
             )
             jsonData = response.json()
             if jsonData.get("retryAfter") is not None:
