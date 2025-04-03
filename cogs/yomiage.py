@@ -18,7 +18,9 @@ class YomiageCog(commands.Cog):
 
     async def cog_load(self):
         with open("./speakers.json") as f:
-            self.speaker = json.load(f)
+            _speaker: dict = json.load(f)
+            for index, value in _speaker.items():
+                self.speaker[int(index)] = value
         if not isinstance(self.speaker, dict):
             self.speaker = {}
 
