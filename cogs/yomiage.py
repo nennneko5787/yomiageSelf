@@ -2,7 +2,7 @@ import asyncio
 import json
 import re
 from pathlib import Path
-from voicevox_core import VoicevoxCore, METAS
+from voicevox_core.asyncio import Onnxruntime, OpenJtalk, Synthesizer, VoiceModelFile
 import io
 import subprocess
 
@@ -19,11 +19,13 @@ class YomiageCog(commands.Cog):
         self.playing: dict[int, bool] = {}
         self.speaker: dict[int, int] = {}
         self.http: httpx.AsyncClient = httpx.AsyncClient()
-        self.voicevox = VoicevoxCore(
-            open_jtalk_dict_dir=Path("./open_jtalk_dic_utf_8-1.11")
-        )
+        self.voicevox: Synthesizer = None
 
     async def cog_load(self):
+        OpenJtalkDictDir = "./open_jtalk_dic_utf_8-1.11"
+        self.voicevox = Synthesizer(
+            await Onnxruntime.load_once(), await OpenJtalk.new(OpenJtalkDictDir)
+        )
 
         with open("./speakers.json") as f:
             _speaker: dict = json.load(f)
@@ -43,11 +45,12 @@ class YomiageCog(commands.Cog):
             return
         content = await self.queue[guild.id].get()
         self.playing[guild.id] = True
-        if not self.voicevox.is_model_loaded(self.speaker[guild.id]):
-            await asyncio.to_thread(self.voicevox.load_model, self.speaker[guild.id])
-        waveBytes = await asyncio.to_thread(
-            self.voicevox.tts, content, self.speaker[guild.id]
-        )
+        if not self.voicevox.is_loaded_voice_model(self.speaker[guild.id]):
+            async with await VoiceModelFile.open(
+                f"models/vvms/{self.speaker[guild.id]}.vvm"
+            ) as model:
+                await self.voicevox.load_voice_model(model)
+        waveBytes = await self.voicevox.tts(content, self.speaker[guild.id])
         wavIO = io.BytesIO(waveBytes)
         source = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(wavIO), 2.0)
 
