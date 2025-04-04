@@ -31,10 +31,12 @@ class YomiageCog(commands.Cog):
         )
 
         for i in range(18):
+            print(f"Loading {i}.vvm")
             async with await VoiceModelFile.open(
                 f"voicevox_core/models/vvms/{i}.vvm"
             ) as model:
                 await self.voicevox.load_voice_model(model)
+            print(f"Loaded {i}.vvm")
 
         with open("./speakers.json") as f:
             _speaker: dict = json.load(f)
