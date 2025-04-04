@@ -56,7 +56,9 @@ class YomiageCog(commands.Cog):
         self.playing[guild.id] = True
         waveBytes = await self.voicevox.tts(content, self.speaker[guild.id])
         wavIO = io.BytesIO(waveBytes)
-        source = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(wavIO), 2.0)
+        source = discord.PCMVolumeTransformer(
+            discord.FFmpegPCMAudio(wavIO, pipe=True), 2.0
+        )
 
         voiceClient: discord.VoiceClient = guild.voice_client
 
