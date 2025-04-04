@@ -30,6 +30,12 @@ class YomiageCog(commands.Cog):
             await OpenJtalk.new(OpenJtalkDictDir),
         )
 
+        for i in range(18):
+            async with await VoiceModelFile.open(
+                f"voicevox_core/models/vvms/{i}.vvm"
+            ) as model:
+                await self.voicevox.load_voice_model(model)
+
         with open("./speakers.json") as f:
             _speaker: dict = json.load(f)
             for index, value in _speaker.items():
@@ -48,11 +54,6 @@ class YomiageCog(commands.Cog):
             return
         content = await self.queue[guild.id].get()
         self.playing[guild.id] = True
-        if not self.voicevox.is_loaded_voice_model(self.speaker[guild.id]):
-            async with await VoiceModelFile.open(
-                f"voicevox_core/models/vvms/{self.speaker[guild.id]}.vvm"
-            ) as model:
-                await self.voicevox.load_voice_model(model)
         waveBytes = await self.voicevox.tts(content, self.speaker[guild.id])
         wavIO = io.BytesIO(waveBytes)
         source = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(wavIO), 2.0)
