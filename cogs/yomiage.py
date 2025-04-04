@@ -24,6 +24,7 @@ class YomiageCog(commands.Cog):
         )
 
     async def cog_load(self):
+
         with open("./speakers.json") as f:
             _speaker: dict = json.load(f)
             for index, value in _speaker.items():
@@ -44,7 +45,9 @@ class YomiageCog(commands.Cog):
         self.playing[guild.id] = True
         if not self.voicevox.is_model_loaded(self.speaker[guild.id]):
             await asyncio.to_thread(self.voicevox.load_model, self.speaker[guild.id])
-        waveBytes = self.voicevox.tts(content, self.speaker[guild.id])
+        waveBytes = await asyncio.to_thread(
+            self.voicevox.tts, content, self.speaker[guild.id]
+        )
         wavIO = io.BytesIO(waveBytes)
         source = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(wavIO), 2.0)
 
