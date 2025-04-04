@@ -1,8 +1,10 @@
 import asyncio
 import json
 import re
-import time
-import urllib.parse
+from pathlib import Path
+from voicevox_core import VoicevoxCore, METAS
+import io
+import subprocess
 
 import discord
 import httpx
@@ -17,6 +19,9 @@ class YomiageCog(commands.Cog):
         self.playing: dict[int, bool] = {}
         self.speaker: dict[int, int] = {}
         self.http: httpx.AsyncClient = httpx.AsyncClient()
+        self.voicevox = VoicevoxCore(
+            open_jtalk_dict_dir=Path("./open_jtalk_dic_utf_8-1.11")
+        )
 
     async def cog_load(self):
         with open("./speakers.json") as f:
@@ -37,43 +42,11 @@ class YomiageCog(commands.Cog):
             return
         content = await self.queue[guild.id].get()
         self.playing[guild.id] = True
-
-        while True:
-            response = await self.http.get(
-                f"https://api.tts.quest/v3/voicevox/synthesis?text={urllib.parse.quote(content)}&speaker={self.speaker[guild.id]}",
-                timeout=60,
-            )
-            jsonData = response.json()
-            if jsonData.get("retryAfter") is not None:
-                await asyncio.sleep(jsonData.get("retryAfter"))
-            else:
-                break
-            await asyncio.sleep(0)
-        mp3StreamingUrl = jsonData["mp3StreamingUrl"]
-        """
-        statusUrl = jsonData["audioStatusUrl"]
-        mp3Url = jsonData["mp3DownloadUrl"]
-        while True:
-            response = await self.http.get(statusUrl)
-            jsonData = response.json()
-            if jsonData["isAudioReady"]:
-                break
-            if jsonData["isAudioError"]:
-                break
-            if not jsonData["success"]:
-                break
-            if jsonData.get("retryAfter") is not None:
-                await asyncio.sleep(jsonData.get("retryAfter"))
-            await asyncio.sleep(1)
-        """
-
-        options = {
-            "before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5",
-            "options": "-vn -bufsize 64k -analyzeduration 2147483647 -probesize 2147483647",
-        }
-        source = discord.PCMVolumeTransformer(
-            discord.FFmpegPCMAudio(mp3StreamingUrl, **options), 2.0
-        )
+        if not self.voicevox.is_model_loaded(self.speaker[guild.id]):
+            await asyncio.to_thread(self.voicevox.load_model, self.speaker[guild.id])
+        waveBytes = self.voicevox.tts(content, self.speaker[guild.id])
+        wavIO = io.BytesIO(waveBytes)
+        source = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(wavIO), 2.0)
 
         voiceClient: discord.VoiceClient = guild.voice_client
 
@@ -85,8 +58,6 @@ class YomiageCog(commands.Cog):
             if voiceClient.is_connected():
                 asyncio.run_coroutine_threadsafe(self.yomiage(guild), loop=loop)
 
-        source.read()
-        await asyncio.sleep(2)
         voiceClient.play(source, after=after)
 
     @commands.Cog.listener()
@@ -120,11 +91,11 @@ class YomiageCog(commands.Cog):
         channel = self.yomiChannel.get(guild.id)
         if not channel:
             return
-    
+
         # どちらのチャンネルにもいない（何も変化していない）場合は無視
         if before.channel is None and after.channel is None:
             return
-    
+
         # 読み上げ対象のチャンネルからの退出処理
         if before.channel and before.channel.id == channel.id:
             if after.channel is None or after.channel.id != channel.id:
@@ -132,14 +103,14 @@ class YomiageCog(commands.Cog):
                     f"{member.display_name}さんが退出しました。"
                 )
                 await self.yomiage(guild)
-    
+
         # 読み上げ対象のチャンネルへの入室処理
-        if after.channel and after.channel.id == channel.id and (
-            before.channel is None or before.channel.id != channel.id
+        if (
+            after.channel
+            and after.channel.id == channel.id
+            and (before.channel is None or before.channel.id != channel.id)
         ):
-            await self.queue[guild.id].put(
-                f"{member.display_name}さんが入室しました。"
-            )
+            await self.queue[guild.id].put(f"{member.display_name}さんが入室しました。")
             await self.yomiage(guild)
 
     @commands.command()
