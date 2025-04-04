@@ -47,7 +47,7 @@ class YomiageCog(commands.Cog):
         self.playing[guild.id] = True
         if not self.voicevox.is_loaded_voice_model(self.speaker[guild.id]):
             async with await VoiceModelFile.open(
-                f"models/vvms/{self.speaker[guild.id]}.vvm"
+                f"voicevox_core/models/vvms/{self.speaker[guild.id]}.vvm"
             ) as model:
                 await self.voicevox.load_voice_model(model)
         waveBytes = await self.voicevox.tts(content, self.speaker[guild.id])
