@@ -1,10 +1,8 @@
 import asyncio
 import json
 import re
-from pathlib import Path
 from voicevox_core.asyncio import Onnxruntime, OpenJtalk, Synthesizer, VoiceModelFile
 import io
-import subprocess
 
 import discord
 import httpx
