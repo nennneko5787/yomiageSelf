@@ -83,6 +83,8 @@ class YomiageCog(commands.Cog):
         channel = self.yomiChannel.get(message.guild.id)
         if channel and channel.id == message.channel.id:
             content = message.clean_content
+            if len(content) > 100:
+                content = content[0:100] + "長文省略"
             content = re.sub(r"https?://\S+", "、リンク省略、", content)
             content = re.sub(r"<#.*?>", "、チャンネル省略、", content)
             content = re.sub(r"<@.*?>", "、メンション省略、", content)
