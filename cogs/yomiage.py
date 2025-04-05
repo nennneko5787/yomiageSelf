@@ -23,10 +23,10 @@ class YomiageCog(commands.Cog):
         self.voicevox: Synthesizer = None
 
     async def cog_load(self):
-        OpenJtalkDictDir = "voicevox_core/dict/open_jtalk_dic_utf_8-1.11"
+        OpenJtalkDictDir = "../voicevox_core/dict/open_jtalk_dic_utf_8-1.11"
         self.voicevox = Synthesizer(
             await Onnxruntime.load_once(
-                filename="voicevox_core/onnxruntime/lib/libvoicevox_onnxruntime.so.1.17.3"
+                filename="../voicevox_core/onnxruntime/lib/libvoicevox_onnxruntime.so.1.17.3"
             ),
             await OpenJtalk.new(OpenJtalkDictDir),
         )
@@ -34,7 +34,7 @@ class YomiageCog(commands.Cog):
         for i in range(18):
             print(f"Loading {i}.vvm")
             async with await VoiceModelFile.open(
-                f"voicevox_core/models/vvms/{i}.vvm"
+                f"../voicevox_core/models/vvms/{i}.vvm"
             ) as model:
                 await self.voicevox.load_voice_model(model)
             print(f"Loaded {i}.vvm")
