@@ -18,6 +18,7 @@ class YomiageCog(commands.Cog):
         self.queue: dict[int, asyncio.Queue] = {}
         self.playing: dict[int, bool] = {}
         self.speaker: dict[int, int] = {}
+        self.beforeUser: dict[int, int] = {}
         self.http: httpx.AsyncClient = httpx.AsyncClient()
         self.voicevox: Synthesizer = None
 
@@ -84,14 +85,17 @@ class YomiageCog(commands.Cog):
         if channel and channel.id == message.channel.id:
             content = message.clean_content
             if len(content) > 100:
-                content = content[0:100] + "長文省略"
+                content = content[0:100] + "、長文省略"
             content = re.sub(r"https?://\S+", "、リンク省略、", content)
             content = re.sub(r"<#.*?>", "、チャンネル省略、", content)
             content = re.sub(r"<@.*?>", "、メンション省略、", content)
             content = re.sub(r"<@&.*?>", "、ロールメンション省略、", content)
             content = re.sub(r"<.*?:.*?>", "、絵文字省略、", content)
+            if self.beforeUser[message.guild.id] != message.author.id:
+                content = f"{message.author.display_name}さん、" + content
+                self.beforeUser[message.guild.id] = message.author.id
             await self.queue[message.guild.id].put(
-                f"{message.author.display_name}さん、{content}{'、添付ファイル' if len(message.attachments) > 0 or len(message.stickers) > 0 else ''}"
+                f"{content}{'、添付ファイル' if len(message.attachments) > 0 or len(message.stickers) > 0 else ''}"
             )
             if not self.playing[message.guild.id]:
                 await self.yomiage(message.guild)
@@ -140,6 +144,7 @@ class YomiageCog(commands.Cog):
         self.yomiChannel[ctx.guild.id] = ctx.channel
         self.queue[ctx.guild.id] = asyncio.Queue()
         self.playing[ctx.guild.id] = False
+        self.beforeUser[ctx.guild.id] = self.bot.user.id
         if not self.speaker.get(ctx.guild.id):
             self.speaker[ctx.guild.id] = 1
         await ctx.author.voice.channel.connect()
@@ -155,6 +160,7 @@ class YomiageCog(commands.Cog):
         del self.yomiChannel[ctx.guild.id]
         del self.queue[ctx.guild.id]
         del self.playing[ctx.guild.id]
+        del self.beforeUser[ctx.guild.id]
         await ctx.voice_client.disconnect()
 
     @commands.command(name="speaker")
