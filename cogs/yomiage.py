@@ -104,20 +104,13 @@ class YomiageCog(commands.Cog):
         after: discord.VoiceState,
     ):
         guild = member.guild
-        channel = self.yomiChannel.get(guild.id)
+        channel = member.guild.voice_client.channel
         if not channel:
             return
 
         # どちらのチャンネルにもいない（何も変化していない）場合は無視
         if before.channel is None and after.channel is None:
             return
-
-        print("Hey")
-        print("now", channel.id)
-        if after.channel:
-            print("after", after.channel.id)
-        if before.channel:
-            print("before", before.channel.id)
 
         # 読み上げ対象のチャンネルからの退出処理
         if not after.channel and before.channel.id == channel.id:
