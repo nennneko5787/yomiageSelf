@@ -106,6 +106,8 @@ class YomiageCog(commands.Cog):
         guild = member.guild
         channel = self.yomiChannel.get(guild.id)
         print(channel)
+        print(before.channel)
+        print(after.channel)
         if not channel:
             return
 
