@@ -108,6 +108,9 @@ class YomiageCog(commands.Cog):
         if not channel:
             return
 
+        if member.id == self.bot.user.id:
+            return
+
         # どちらのチャンネルにもいない（何も変化していない）場合は無視
         if before.channel is None and after.channel is None:
             return
