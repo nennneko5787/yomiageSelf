@@ -113,6 +113,9 @@ class YomiageCog(commands.Cog):
             return
 
         print("Hey")
+        print("now", channel.id)
+        print("after", after.channel.id)
+        print("before", before.channel.id)
 
         # 読み上げ対象のチャンネルからの退出処理
         if not after.channel and before.channel.id == channel.id:
