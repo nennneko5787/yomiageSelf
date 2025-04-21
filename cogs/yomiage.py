@@ -16,7 +16,6 @@ class YomiageCog(commands.Cog):
         self.queue: dict[int, asyncio.Queue] = {}
         self.playing: dict[int, bool] = {}
         self.speaker: dict[int, int] = {}
-        self.beforeUser: dict[int, int] = {}
         self.http: httpx.AsyncClient = httpx.AsyncClient()
         self.voicevox: Synthesizer = None
 
@@ -106,6 +105,7 @@ class YomiageCog(commands.Cog):
     ):
         guild = member.guild
         channel = self.yomiChannel.get(guild.id)
+        print(channel)
         if not channel:
             return
 
@@ -141,7 +141,6 @@ class YomiageCog(commands.Cog):
         self.yomiChannel[ctx.guild.id] = ctx.channel
         self.queue[ctx.guild.id] = asyncio.Queue()
         self.playing[ctx.guild.id] = False
-        self.beforeUser[ctx.guild.id] = self.bot.user.id
         if not self.speaker.get(ctx.guild.id):
             self.speaker[ctx.guild.id] = 1
         await ctx.author.voice.channel.connect()
@@ -157,7 +156,6 @@ class YomiageCog(commands.Cog):
         del self.yomiChannel[ctx.guild.id]
         del self.queue[ctx.guild.id]
         del self.playing[ctx.guild.id]
-        del self.beforeUser[ctx.guild.id]
         await ctx.voice_client.disconnect()
 
     @commands.command(name="speaker")
