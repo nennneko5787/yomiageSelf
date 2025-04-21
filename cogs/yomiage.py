@@ -105,9 +105,6 @@ class YomiageCog(commands.Cog):
     ):
         guild = member.guild
         channel = self.yomiChannel.get(guild.id)
-        print(channel)
-        print(before.channel)
-        print(after.channel)
         if not channel:
             return
 
@@ -115,12 +112,17 @@ class YomiageCog(commands.Cog):
         if before.channel is None and after.channel is None:
             return
 
+        print("Hey")
+
         # 読み上げ対象のチャンネルからの退出処理
-        if before.channel and before.channel.id == channel.id:
-            if after.channel is None or after.channel.id != channel.id:
-                await self.queue[guild.id].put(
-                    f"{member.display_name}さんが退出しました。"
-                )
+        if (
+            before.channel
+            and before.channel.id == channel.id
+            and (after.channel is None or after.channel.id != channel.id)
+        ):
+            print("退出")
+            await self.queue[guild.id].put(f"{member.display_name}さんが退出しました。")
+            if not self.playing[guild.id]:
                 await self.yomiage(guild)
 
         # 読み上げ対象のチャンネルへの入室処理
@@ -129,8 +131,10 @@ class YomiageCog(commands.Cog):
             and after.channel.id == channel.id
             and (before.channel is None or before.channel.id != channel.id)
         ):
+            print("入室")
             await self.queue[guild.id].put(f"{member.display_name}さんが入室しました。")
-            await self.yomiage(guild)
+            if not self.playing[guild.id]:
+                await self.yomiage(guild)
 
     @commands.command()
     async def join(self, ctx: commands.Context):
