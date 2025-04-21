@@ -79,9 +79,11 @@ class YomiageCog(commands.Cog):
             return
         if message.author.bot:
             return
+        if message.author.id == self.bot.user.id:
+            return
         channel = self.yomiChannel.get(message.guild.id)
         if channel and channel.id == message.channel.id:
-            content = message.clean_content
+            content = f"{message.author.display_name}さん、{message.clean_content}"
             if len(content) > 100:
                 content = content[0:100] + "、長文省略"
             content = re.sub(r"https?://\S+", "、リンク省略、", content)
@@ -89,9 +91,6 @@ class YomiageCog(commands.Cog):
             content = re.sub(r"<@.*?>", "、メンション省略、", content)
             content = re.sub(r"<@&.*?>", "、ロールメンション省略、", content)
             content = re.sub(r"<.*?:.*?>", "、絵文字省略、", content)
-            if self.beforeUser[message.guild.id] != message.author.id:
-                content = f"{message.author.display_name}さん、" + content
-                self.beforeUser[message.guild.id] = message.author.id
             await self.queue[message.guild.id].put(
                 f"{content}{'、添付ファイル' if len(message.attachments) > 0 or len(message.stickers) > 0 else ''}"
             )
